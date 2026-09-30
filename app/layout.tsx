@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
+import React from "react";
+import Provider from "./provider";
 
 
 
@@ -11,13 +13,17 @@ export const metadata: Metadata = {
 
 const outfit = Outfit({subsets:['latin']})
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: Readonly<{children: React.ReactNode}>) {
   return (
     <html
       lang="en"
       className={outfit.className}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Provider>
+          {children}
+        </Provider>
+      </body>
     </html>
   );
 }
