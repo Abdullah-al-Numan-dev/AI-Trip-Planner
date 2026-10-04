@@ -29,14 +29,14 @@ function Hero() {
 
             {/* Content  */}
             <div className='max-w-3xl w-full text-center space-y-6'>
-                <h1 className='text-xl md:text-5xl font-bold'>Hey, I'm your personal <span className='text-primary'>Trip Planner</span></h1>
-                <p className='text-lg'>Tell me what you want, and I'll handle the rest: Flights, Hotels, trip planner - all in seconds</p>
+                <h1 className='text-xl md:text-5xl font-bold'>Hey, I&apos;m your personal <span className='text-primary'>Trip Planner</span></h1>
+                <p className='text-lg'>Tell me what you want, and I&apos;ll handle the rest: Flights, Hotels, trip planner - all in seconds</p>
             </div>
 
             {/* Input Box  */}
             <div className='max-w-3xl w-full mt-10'>
                 <div className='border rounded-2xl p-5 relative shadow-sm bg-background'>
-                    <Textarea placeholder='Create a trip for Parise from New york' className='w-full min-h-32 bg-transparent border-none focus-visible:ring-0 shadow-none resize-none text-base pr-14' />
+                    <Textarea id="trip-planner-input" placeholder='Create a trip for Paris from New York' className='w-full min-h-32 bg-transparent border-none focus-visible:ring-0 shadow-none resize-none text-base pr-14' />
                     <Button size={'icon'} className='absolute bottom-5 right-5 rounded-full'>
                         <Send className='h-4 w-4' />
                     </Button>
