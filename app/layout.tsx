@@ -4,6 +4,7 @@ import "./globals.css";
 import React from "react";
 import Provider from "./provider";
 import { ClerkProvider } from "@clerk/nextjs";
+import { ConvexClientProvider } from "./ConvexClientProvider";
 
 
 
@@ -22,9 +23,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         className={outfit.className}
       >
         <body className="min-h-full flex flex-col">
-          <Provider>
+          <ConvexClientProvider>
             {children}
-          </Provider>
+          </ConvexClientProvider>
         </body>
       </html>
     </ClerkProvider>
