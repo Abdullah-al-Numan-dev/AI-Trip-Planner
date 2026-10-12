@@ -8,6 +8,8 @@
     "start": "next start"
   },
   "dependencies": {
+    "@arcjet/nest": "^1.14.1",
+    "@arcjet/next": "^1.14.1",
     "@base-ui/react": "^1.8.0",
     "@clerk/nextjs": "^7.9.10",
     "@tabler/icons-react": "^3.48.0",
