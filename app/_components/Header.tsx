@@ -37,8 +37,8 @@ function Header() {
 
             {/* Menu Option */}
             <div className='flex gap-8 items-center'>
-                {menuOption.map((menu, index) => (
-                    <Link href={menu.path}>
+                {menuOption.map((menu) => (
+                    <Link key={menu.path} href={menu.path}>
                         <h2 className='text-lg hover:scale-105 transition-all hover:text-primary '>{menu.name}</h2>
                     </Link>
                 ))}

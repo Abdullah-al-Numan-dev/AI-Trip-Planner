@@ -21,6 +21,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <html
         lang="en"
         className={outfit.className}
+        suppressHydrationWarning
       >
         <body className="min-h-full flex flex-col">
           <ConvexClientProvider>
