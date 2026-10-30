@@ -7,10 +7,15 @@ import { Send, LoaderCircle, RotateCcw } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import EmptyBoxState from "./EmptyBoxState";
+import GroupSizeUi from "./GroupSizeUi";
+import BudgetUi from "./BudgetUi";
+import TripDurationUi from "./TripDurationUi";
+import FinalUi from "./FinalUi";
 
 type Message = {
     role: "user" | "assistant";
     content: string;
+    ui?: string;
 };
 
 type AIResponse = {
@@ -83,6 +88,7 @@ function ChatBox() {
                 {
                     role: "assistant",
                     content: data.resp,
+                    ui: data.ui,
                 },
             ]);
 
@@ -130,10 +136,27 @@ function ChatBox() {
         }
     };
 
+    const RenderGenerativeUi = (ui: string) => {
+    if (ui === "budget") {
+        return <BudgetUi onSelectOption={(v: string) => sendMessage(v)} />;
+    }
+    if (ui === "groupSize") {
+        return <GroupSizeUi onSelectOption={(v: string) => sendMessage(v)} />;
+    }
+    if (ui === "TripDuration") {
+        return <TripDurationUi onSelectOption={(v: string) => sendMessage(v)} />;
+    }
+    if (ui === "Final") {
+        return <FinalUi onViewTrip={() => console.log("View trip clicked")} />;
+    }
+    return null;
+};
+
+
     return (
         <div className="flex h-[80vh] flex-col">
             {messages?.length == 0 &&
-                <EmptyBoxState onSelectOption={(v: string) => { setUserInput(v); onSend() }} />
+                <EmptyBoxState onSelectOption={(v: string) => sendMessage(v)} />
             }
             {/* Chat messages */}
             <section
@@ -144,17 +167,18 @@ function ChatBox() {
                     <div
                         key={index}
                         className={`mt-3 flex ${message.role === "user"
-                                ? "justify-end"
-                                : "justify-start"
+                            ? "justify-end"
+                            : "justify-start"
                             }`}
                     >
                         <div
                             className={`max-w-[85%] whitespace-pre-wrap break-words rounded-lg px-4 py-2 sm:max-w-lg ${message.role === "user"
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-muted text-foreground"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-foreground"
                                 }`}
                         >
                             {message.content}
+                            {RenderGenerativeUi(message.ui ?? '')}
                         </div>
                     </div>
                 ))}
