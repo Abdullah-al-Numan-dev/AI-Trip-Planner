@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -29,9 +28,11 @@ const UI_LABELS: Record<string, string> = {
     groupSize: "Group Size",
     budget: "Budget",
     TripDuration: "Trip Duration",
+    tripDuration: "Trip Duration",
     interests: "Travel Interests",
     preferences: "Special Requirements",
     Final: "Your Trip Plan",
+    final: "Your Trip Plan",
 };
 
 function ChatBox() {
@@ -136,22 +137,22 @@ function ChatBox() {
         }
     };
 
-    const RenderGenerativeUi = (ui: string) => {
-    if (ui === "budget") {
-        return <BudgetUi onSelectOption={(v: string) => sendMessage(v)} />;
-    }
-    if (ui === "groupSize") {
-        return <GroupSizeUi onSelectOption={(v: string) => sendMessage(v)} />;
-    }
-    if (ui === "TripDuration") {
-        return <TripDurationUi onSelectOption={(v: string) => sendMessage(v)} />;
-    }
-    if (ui === "Final") {
-        return <FinalUi onViewTrip={() => console.log("View trip clicked")} />;
-    }
-    return null;
-};
-
+    const RenderGenerativeUi = (rawUi: string) => {
+        const normalized = rawUi.toLowerCase();
+        if (normalized === "budget") {
+            return <BudgetUi onSelectOption={(v: string) => sendMessage(v)} />;
+        }
+        if (normalized === "groupsize") {
+            return <GroupSizeUi onSelectOption={(v: string) => sendMessage(v)} />;
+        }
+        if (normalized === "tripduration") {
+            return <TripDurationUi onSelectOption={(v: string) => sendMessage(v)} />;
+        }
+        if (normalized === "final") {
+            return <FinalUi onViewTrip={() => console.log("View trip clicked")} />;
+        }
+        return null;
+    };
 
     return (
         <div className="flex h-[80vh] flex-col">
