@@ -10,6 +10,10 @@ import GroupSizeUi from "./GroupSizeUi";
 import BudgetUi from "./BudgetUi";
 import TripDurationUi from "./TripDurationUi";
 import FinalUi from "./FinalUi";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useUserDetail } from "@/app/provider";
+import { v4 as uuidv4 } from "uuid";
 
 type Message = {
     role: "user" | "assistant";
@@ -20,6 +24,17 @@ type Message = {
 type AIResponse = {
     resp: string;
     ui: string;
+    trip_plan?: any;
+    success?: boolean;
+};
+
+export type TripInfo = {
+    destination: string;
+    duration: string;
+    origin: string;
+    budget: string;
+    hotels: any;
+    itinerary: any;
 };
 
 const UI_LABELS: Record<string, string> = {
@@ -42,6 +57,12 @@ function ChatBox() {
     const [ui, setUi] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [retryMessage, setRetryMessage] = useState<string | null>(null);
+    const [isFinal, setIsFinal] = useState(false);
+    const [tripDetail, setTripDetail] = useState<TripInfo>();
+    const [tripId, setTripId] = useState<string>("");
+
+    const SaveTripDetail = useMutation(api.tripDetail.CreateTripDetail);
+    const { userDetail } = useUserDetail();
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -51,20 +72,24 @@ function ChatBox() {
         });
     }, [messages, loading]);
 
-    const sendMessage = async (text: string) => {
+    const sendMessage = async (text: string = "", isFinalRequest: boolean = false) => {
         const input = text.trim();
 
-        if (!input || loading) return;
+        // Require text for normal messages, but allow empty text if triggered as final generation
+        if ((!input && !isFinalRequest) || loading) return;
 
-        const newMessage: Message = {
-            role: "user",
-            content: input,
-        };
+        let updatedMessages = [...messages];
 
-        const updatedMessages = [...messages, newMessage];
+        if (input) {
+            const newMessage: Message = {
+                role: "user",
+                content: input,
+            };
+            updatedMessages = [...updatedMessages, newMessage];
+            setMessages(updatedMessages);
+            setUserInput("");
+        }
 
-        setMessages(updatedMessages);
-        setUserInput("");
         setLoading(true);
         setErrorMessage("");
         setRetryMessage(null);
@@ -74,26 +99,37 @@ function ChatBox() {
                 "/api/aimodel",
                 {
                     messages: updatedMessages,
+                    isFinal: isFinalRequest,
                 }
             );
 
-            if (
-                typeof data.resp !== "string" ||
-                typeof data.ui !== "string"
-            ) {
-                throw new Error("The AI returned an invalid response.");
+            console.log("TRIP", data);
+
+            if (isFinalRequest) {
+                if (data?.trip_plan) {
+                    setTripDetail(data.trip_plan);
+                    const newTripId = uuidv4();
+                    setTripId(newTripId);
+                    await SaveTripDetail({
+                        tripDetail: data.trip_plan,
+                        tripId: newTripId,
+                        uid: userDetail?._id,
+                    });
+                }
+            } else {
+                setMessages((previous) => [
+                    ...previous,
+                    {
+                        role: "assistant",
+                        content: data.resp,
+                        ui: data.ui,
+                    },
+                ]);
             }
 
-            setMessages((previous) => [
-                ...previous,
-                {
-                    role: "assistant",
-                    content: data.resp,
-                    ui: data.ui,
-                },
-            ]);
-
-            setUi(data.ui);
+            if (data?.ui) {
+                setUi(data.ui);
+            }
         } catch (error: unknown) {
             let message =
                 "Something went wrong. Please try again.";
@@ -126,7 +162,7 @@ function ChatBox() {
         }
     };
 
-    const onSend = () => sendMessage(userInput);
+    const onSend = (final: boolean = false) => sendMessage(userInput, final);
 
     const handleKeyDown = (
         event: React.KeyboardEvent<HTMLTextAreaElement>
@@ -149,10 +185,27 @@ function ChatBox() {
             return <TripDurationUi onSelectOption={(v: string) => sendMessage(v)} />;
         }
         if (normalized === "final") {
-            return <FinalUi onViewTrip={() => console.log("View trip clicked")} />;
+            return (
+                <FinalUi 
+                    tripDetail={tripDetail}
+                    loading={loading}
+                    disabled={loading || !tripDetail}
+                    onViewTrip={() => {
+                        console.log("View trip clicked. Trip ID:", tripId, "Details:", tripDetail);
+                    }} 
+                />
+            );
         }
         return null;
     };
+
+    useEffect(() => {
+        const lastMsg = messages[messages.length - 1];
+        if (lastMsg?.ui?.toLowerCase() === 'final' && !isFinal) {
+            setIsFinal(true);
+            sendMessage('Ok, Great!', true);
+        }
+    }, [messages, isFinal]);
 
     return (
         <div className="flex h-[80vh] flex-col">
@@ -244,7 +297,7 @@ function ChatBox() {
                         type="button"
                         size="icon"
                         className="absolute bottom-4 right-4 rounded-full"
-                        onClick={onSend}
+                        onClick={() => onSend()}
                         disabled={loading || !userInput.trim()}
                         aria-label="Send message"
                     >

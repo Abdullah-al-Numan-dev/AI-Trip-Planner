@@ -47,6 +47,61 @@ IMPORTANT:
 - NEVER combine multiple values with slashes (do NOT output "budget/groupSize/tripDuration").
 `;
 
+const FINAL_PROMPT = `Generate Travel Plan with give details, give me Hotels options list with HotelName, 
+
+Hotel address, Price, hotel image url, geo coordinates, rating, descriptions and suggest itinerary with placeName, Place Details, Place Image Url,
+
+Geo Coordinates, Place address, ticket Pricing, Time travel each of the location, with each day plan with best time to visit in JSON format.
+
+Return a STRICT JSON object only (no markdown fences, no extra text outside the JSON) matching this exact Output Schema:
+
+{
+  "trip_plan": {
+    "destination": "string",
+    "duration": "string",
+    "origin": "string",
+    "budget": "string",
+    "group_size": "string",
+    "hotels": [
+      {
+        "hotel_name": "string",
+        "hotel_address": "string",
+        "price_per_night": "string",
+        "hotel_image_url": "string",
+        "geo_coordinates": {
+          "latitude": "number",
+          "longitude": "number"
+        },
+        "rating": "number",
+        "description": "string"
+      }
+    ],
+    "itinerary": [
+      {
+        "day": "number",
+        "day_plan": "string",
+        "best_time_to_visit_day": "string",
+        "activities": [
+          {
+            "place_name": "string",
+            "place_details": "string",
+            "place_image_url": "string",
+            "geo_coordinates": {
+              "latitude": "number",
+              "longitude": "number"
+            },
+            "place_address": "string",
+            "ticket_pricing": "string",
+            "time_travel_each_location": "string",
+            "best_time_to_visit": "string"
+          }
+        ]
+      }
+    ]
+  }
+}
+`;
+
 const VALID_UI_OPTIONS = [
     "source",
     "destination",
@@ -183,7 +238,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Validate request body
-        let body: { messages?: unknown };
+        let body: { messages?: unknown; isFinal?: unknown };
 
         try {
             body = await req.json();
@@ -197,7 +252,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { messages } = body;
+        const { messages, isFinal } = body;
 
         if (
             !Array.isArray(messages) ||
@@ -222,6 +277,8 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        const isFinalRequest = Boolean(isFinal);
+
         // Request AI response
         const completion = await openai.chat.completions.create({
             model: "openrouter/free",
@@ -229,7 +286,7 @@ export async function POST(req: NextRequest) {
             messages: [
                 {
                     role: "system",
-                    content: PROMPT,
+                    content: isFinalRequest ? FINAL_PROMPT : PROMPT,
                 },
                 ...messages,
             ],
@@ -274,7 +331,35 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Validate response structure
+        // When isFinal is requested, extract and return trip_plan
+        if (isFinalRequest) {
+            let tripPlan = (result as { trip_plan?: unknown })?.trip_plan;
+            if (!tripPlan && result && typeof result === "object") {
+                if ("itinerary" in result || "hotels" in result || "destination" in result) {
+                    tripPlan = result;
+                }
+            }
+
+            if (!tripPlan) {
+                console.error("AI did not return a valid trip_plan structure:", result);
+                return NextResponse.json(
+                    {
+                        success: false,
+                        message: "The AI did not return a valid trip plan. Please retry.",
+                    },
+                    { status: 502 }
+                );
+            }
+
+            return NextResponse.json({
+                success: true,
+                resp: "Here is your complete trip plan!",
+                ui: "Final",
+                trip_plan: tripPlan,
+            });
+        }
+
+        // Validate standard question response structure
         if (
             !result ||
             typeof result !== "object" ||
