@@ -1,5 +1,6 @@
 import React from 'react'
 import ChatBox from './_components/ChatBox'
+import Itinerary from './_components/Itinerary'
 
 function CreateNewTrip() {
     return (
@@ -8,7 +9,7 @@ function CreateNewTrip() {
                 <ChatBox />
             </div>
             <div>
-                map and trip plan to display
+                <Itinerary />
             </div>
         </div>
     )

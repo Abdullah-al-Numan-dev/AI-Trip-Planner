@@ -9,7 +9,7 @@ import EmptyBoxState from "./EmptyBoxState";
 import GroupSizeUi from "./GroupSizeUi";
 import BudgetUi from "./BudgetUi";
 import TripDurationUi from "./TripDurationUi";
-import FinalUi from "./FinalUi";
+import FinalUi, { type TripPlan } from "./FinalUi";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useUserDetail } from "@/app/provider";
@@ -24,17 +24,8 @@ type Message = {
 type AIResponse = {
     resp: string;
     ui: string;
-    trip_plan?: any;
+    trip_plan?: TripPlan;
     success?: boolean;
-};
-
-export type TripInfo = {
-    destination: string;
-    duration: string;
-    origin: string;
-    budget: string;
-    hotels: any;
-    itinerary: any;
 };
 
 const UI_LABELS: Record<string, string> = {
@@ -57,14 +48,15 @@ function ChatBox() {
     const [ui, setUi] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [retryMessage, setRetryMessage] = useState<string | null>(null);
-    const [isFinal, setIsFinal] = useState(false);
-    const [tripDetail, setTripDetail] = useState<TripInfo>();
+    const [finalError, setFinalError] = useState<string | null>(null);
+    const [tripDetail, setTripDetail] = useState<TripPlan>();
     const [tripId, setTripId] = useState<string>("");
 
     const SaveTripDetail = useMutation(api.tripDetail.CreateTripDetail);
     const { userDetail } = useUserDetail();
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const handledFinalMessageIndex = useRef(-1);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({
@@ -80,7 +72,17 @@ function ChatBox() {
 
         let updatedMessages = [...messages];
 
-        if (input) {
+        if (isFinalRequest) {
+            // Send a hidden follow-up turn to the AI so the conversation context
+            // is complete, without showing a fake user message in the chat.
+            updatedMessages = [
+                ...updatedMessages,
+                {
+                    role: "user",
+                    content: input || "Generate the final trip plan.",
+                },
+            ];
+        } else if (input) {
             const newMessage: Message = {
                 role: "user",
                 content: input,
@@ -93,6 +95,10 @@ function ChatBox() {
         setLoading(true);
         setErrorMessage("");
         setRetryMessage(null);
+
+        if (isFinalRequest) {
+            setFinalError(null);
+        }
 
         try {
             const { data } = await axios.post<AIResponse>(
@@ -108,6 +114,7 @@ function ChatBox() {
             if (isFinalRequest) {
                 if (data?.trip_plan) {
                     setTripDetail(data.trip_plan);
+                    setFinalError(null);
                     const newTripId = uuidv4();
                     setTripId(newTripId);
                     await SaveTripDetail({
@@ -115,6 +122,10 @@ function ChatBox() {
                         tripId: newTripId,
                         uid: userDetail?._id,
                     });
+                } else {
+                    setFinalError(
+                        "The AI did not return a trip plan. Please try again."
+                    );
                 }
             } else {
                 setMessages((previous) => [
@@ -155,8 +166,12 @@ function ChatBox() {
                 message = error.message;
             }
 
-            setErrorMessage(message);
-            setRetryMessage(input);
+            if (isFinalRequest) {
+                setFinalError(message);
+            } else {
+                setErrorMessage(message);
+                setRetryMessage(input);
+            }
         } finally {
             setLoading(false);
         }
@@ -186,13 +201,20 @@ function ChatBox() {
         }
         if (normalized === "final") {
             return (
-                <FinalUi 
+                <FinalUi
                     tripDetail={tripDetail}
                     loading={loading}
                     disabled={loading || !tripDetail}
+                    error={finalError}
+                    onRetry={() => sendMessage("", true)}
                     onViewTrip={() => {
-                        console.log("View trip clicked. Trip ID:", tripId, "Details:", tripDetail);
-                    }} 
+                        console.log(
+                            "View trip clicked. Trip ID:",
+                            tripId,
+                            "Details:",
+                            tripDetail
+                        );
+                    }}
                 />
             );
         }
@@ -200,12 +222,22 @@ function ChatBox() {
     };
 
     useEffect(() => {
-        const lastMsg = messages[messages.length - 1];
-        if (lastMsg?.ui?.toLowerCase() === 'final' && !isFinal) {
-            setIsFinal(true);
-            sendMessage('Ok, Great!', true);
+        const lastMessageIndex = messages.length - 1;
+        const lastMessage = messages[lastMessageIndex];
+
+        // Only generate once per final message. The ref guard also prevents
+        // React Strict Mode from firing two duplicate final requests.
+        if (
+            lastMessage?.ui?.toLowerCase() === "final" &&
+            handledFinalMessageIndex.current !== lastMessageIndex
+        ) {
+            handledFinalMessageIndex.current = lastMessageIndex;
+            sendMessage("", true);
         }
-    }, [messages, isFinal]);
+    }, [messages]);
+
+    const isFinalStep =
+        messages[messages.length - 1]?.ui?.toLowerCase() === "final";
 
     return (
         <div className="flex h-[80vh] flex-col">
@@ -217,27 +249,39 @@ function ChatBox() {
                 className="flex-1 overflow-y-auto p-4"
                 aria-live="polite"
             >
-                {messages.map((message, index) => (
-                    <div
-                        key={index}
-                        className={`mt-3 flex ${message.role === "user"
-                            ? "justify-end"
-                            : "justify-start"
-                            }`}
-                    >
+                {messages.map((message, index) => {
+                    const isFinalMessage =
+                        message.ui?.toLowerCase() === "final";
+
+                    return (
                         <div
-                            className={`max-w-[85%] whitespace-pre-wrap break-words rounded-lg px-4 py-2 sm:max-w-lg ${message.role === "user"
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-foreground"
+                            key={index}
+                            className={`mt-3 flex ${message.role === "user"
+                                ? "justify-end"
+                                : "justify-start"
                                 }`}
                         >
-                            {message.content}
-                            {RenderGenerativeUi(message.ui ?? '')}
+                            <div
+                                className={`${
+                                    isFinalMessage
+                                        ? "w-full max-w-[95%] sm:max-w-xl"
+                                        : "max-w-[85%] sm:max-w-lg"
+                                } whitespace-pre-wrap break-words rounded-lg px-4 py-2 ${
+                                    message.role === "user"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted text-foreground"
+                                }`}
+                            >
+                                {/* The raw final plan is hidden; the structured
+                                    plan is shown when "View Trip" is clicked. */}
+                                {!isFinalMessage && message.content}
+                                {RenderGenerativeUi(message.ui ?? '')}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
 
-                {loading && (
+                {loading && !isFinalStep && (
                     <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                         <LoaderCircle className="h-4 w-4 animate-spin" />
                         Planning your trip...
