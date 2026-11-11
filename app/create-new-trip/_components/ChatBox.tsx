@@ -9,11 +9,12 @@ import EmptyBoxState from "./EmptyBoxState";
 import GroupSizeUi from "./GroupSizeUi";
 import BudgetUi from "./BudgetUi";
 import TripDurationUi from "./TripDurationUi";
-import FinalUi, { type TripPlan } from "./FinalUi";
+import FinalUi from "./FinalUi";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useUserDetail } from "@/app/provider";
 import { v4 as uuidv4 } from "uuid";
+import type { TripPlan } from "./types";
 
 type Message = {
     role: "user" | "assistant";
@@ -26,6 +27,11 @@ type AIResponse = {
     ui: string;
     trip_plan?: TripPlan;
     success?: boolean;
+};
+
+type ChatBoxProps = {
+    onTripGenerated?: (trip: TripPlan, tripId: string) => void;
+    onViewTrip?: () => void;
 };
 
 const UI_LABELS: Record<string, string> = {
@@ -41,7 +47,7 @@ const UI_LABELS: Record<string, string> = {
     final: "Your Trip Plan",
 };
 
-function ChatBox() {
+function ChatBox({ onTripGenerated, onViewTrip }: ChatBoxProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [userInput, setUserInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -117,6 +123,7 @@ function ChatBox() {
                     setFinalError(null);
                     const newTripId = uuidv4();
                     setTripId(newTripId);
+                    onTripGenerated?.(data.trip_plan, newTripId);
                     await SaveTripDetail({
                         tripDetail: data.trip_plan,
                         tripId: newTripId,
@@ -214,6 +221,7 @@ function ChatBox() {
                             "Details:",
                             tripDetail
                         );
+                        onViewTrip?.();
                     }}
                 />
             );

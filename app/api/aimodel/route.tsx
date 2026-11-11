@@ -47,11 +47,16 @@ IMPORTANT:
 - NEVER combine multiple values with slashes (do NOT output "budget/groupSize/tripDuration").
 `;
 
-const FINAL_PROMPT = `Generate Travel Plan with give details, give me Hotels options list with HotelName, 
+const FINAL_PROMPT = `Generate a Travel Plan with the given details. 
 
-Hotel address, Price, hotel image url, geo coordinates, rating, descriptions and suggest itinerary with placeName, Place Details, Place Image Url,
+HOTEL OPTIONS:
+- Recommend exactly 3 hotel options (at least 2, never more than 3) so the traveler can compare and choose.
+- Every hotel must be a different property. Prefer different areas/neighborhoods and different price ranges (budget, moderate, luxury) that still fit the stated budget.
+- Use real, well-known properties and the official property name only in "hotel_name" (do not append the city or area).
+- Put the full real address in "hotel_address" and briefly explain in "description" who the hotel suits and why it is a good choice.
 
-Geo Coordinates, Place address, ticket Pricing, Time travel each of the location, with each day plan with best time to visit in JSON format.
+ITINERARY:
+Suggest an itinerary with placeName, Place Details, Place Image Url, Geo Coordinates, Place address, ticket Pricing, time travel for each location, with each day plan with the best time to visit, in JSON format.
 
 Return a STRICT JSON object only (no markdown fences, no extra text outside the JSON) matching this exact Output Schema:
 
@@ -349,6 +354,31 @@ export async function POST(req: NextRequest) {
                     },
                     { status: 502 }
                 );
+            }
+
+            // Keep the hotel list comparable: at most 3 distinct properties.
+            const plan = tripPlan as { hotels?: unknown };
+            if (Array.isArray(plan.hotels)) {
+                const seenHotels = new Set<string>();
+                plan.hotels = plan.hotels
+                    .filter((hotel) => {
+                        if (!hotel || typeof hotel !== "object") return false;
+
+                        const hotelName = String(
+                            (hotel as { hotel_name?: unknown }).hotel_name ??
+                                ""
+                        )
+                            .trim()
+                            .toLowerCase();
+
+                        if (!hotelName || seenHotels.has(hotelName)) {
+                            return false;
+                        }
+
+                        seenHotels.add(hotelName);
+                        return true;
+                    })
+                    .slice(0, 3);
             }
 
             return NextResponse.json({
