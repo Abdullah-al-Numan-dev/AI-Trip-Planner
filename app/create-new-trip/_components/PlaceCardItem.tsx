@@ -64,12 +64,12 @@ function PlaceCardItem({ activity, destination }: Props) {
             <h2 className='font-semibold text-lg line-clamp-1'>
                 {activity?.place_name || place?.name}
             </h2>
-            <p className='text-gray-500 line-clamp-2 text-sm'>
+            <p className='text-muted-foreground line-clamp-2 text-sm'>
                 {activity?.place_details}
             </p>
 
             {address && (
-                <p className='flex items-center gap-1 text-xs text-gray-400 line-clamp-1'>
+                <p className='flex items-center gap-1 text-xs text-muted-foreground line-clamp-1'>
                     <MapPin className='w-3.5 h-3.5 shrink-0' /> {address}
                 </p>
             )}
@@ -78,7 +78,7 @@ function PlaceCardItem({ activity, destination }: Props) {
                 <p className='flex items-center gap-1 text-sm text-yellow-500'>
                     <Star className='w-4 h-4' /> {place.rating}
                     {place.userRatingCount ? (
-                        <span className='text-xs text-gray-400'>
+                        <span className='text-xs text-muted-foreground'>
                             ({place.userRatingCount})
                         </span>
                     ) : null}
@@ -106,7 +106,7 @@ function PlaceCardItem({ activity, destination }: Props) {
                     href={photoCreditUrl}
                     target='_blank'
                     rel='noopener noreferrer'
-                    className='text-[10px] text-gray-400 line-clamp-1 hover:underline'
+                    className='text-[10px] text-muted-foreground line-clamp-1 hover:underline'
                 >
                     Photo: {photoCreditTitle || 'Wikimedia Commons'}
                 </a>

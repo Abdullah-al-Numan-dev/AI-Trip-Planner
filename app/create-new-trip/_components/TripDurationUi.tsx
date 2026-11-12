@@ -15,7 +15,7 @@ function TripDurationUi({ onSelectOption }: Props) {
     const [days, setDays] = useState(7);
 
     return (
-        <div className="mt-2 flex flex-col items-center gap-4 rounded-2xl border bg-white p-4">
+        <div className="mt-2 flex flex-col items-center gap-4 rounded-2xl border bg-card p-4">
             <h2 className="text-center font-semibold text-foreground">
                 How many days do you want to travel?
             </h2>

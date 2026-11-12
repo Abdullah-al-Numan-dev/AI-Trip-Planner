@@ -32,7 +32,7 @@ function Provider({ children }: Readonly<{ children: React.ReactNode }>) {
   }
   return (
     <UserDetailContext.Provider value={{userDetail, setUserDetail}}>
-      <div>
+      <div className='flex h-dvh flex-col'>
         <Header />
         {children}</div>
     </UserDetailContext.Provider>

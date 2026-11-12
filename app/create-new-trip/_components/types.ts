@@ -41,6 +41,13 @@ export type TripPlan = {
     itinerary?: ItineraryDay[];
 };
 
+export type SavedTrip = {
+    _id?: string;
+    _creationTime?: number;
+    tripId: string;
+    tripDetail: TripPlan;
+};
+
 export type PlaceInfo = {
     id?: string;
     name?: string;

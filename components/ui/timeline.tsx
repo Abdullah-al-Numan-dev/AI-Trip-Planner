@@ -61,7 +61,7 @@ export const Timeline = ({
           <strong className="text-primary">{tripData?.destination}</strong> is
           Ready
         </h2>
-        <div className="flex gap-5 items-center">
+        <div className="flex flex-wrap gap-3 items-center sm:gap-5">
           <div className="flex gap-2 items-center">
             <Calendar />
             <h2>{tripData?.duration}</h2>
@@ -92,7 +92,7 @@ export const Timeline = ({
               </h3>
             </div>
 
-            <div className="relative pl-20 pr-4 md:pl-4 w-full">
+            <div className="relative pl-14 pr-3 w-full sm:pl-16 sm:pr-4 md:pl-4">
               <h3 className="md:hidden block text-2xl mb-4 text-left font-bold text-neutral-500 dark:text-neutral-500">
                 {item.title}
               </h3>

@@ -32,8 +32,8 @@ function FinalUi({
 
     if (error && !isReady) {
         return (
-            <div className="mt-3 flex flex-col items-center rounded-2xl border border-red-200 bg-white p-5 text-center shadow-sm">
-                <div className="rounded-full bg-red-50 p-3 text-red-600">
+            <div className="mt-3 flex flex-col items-center rounded-2xl border border-red-200 bg-card p-5 text-center shadow-sm dark:border-red-900/60">
+                <div className="rounded-full bg-red-50 p-3 text-red-600 dark:bg-red-950/50 dark:text-red-400">
                     <AlertCircle className="h-8 w-8" />
                 </div>
 
@@ -41,7 +41,7 @@ function FinalUi({
                     We couldn&apos;t generate your trip plan
                 </h2>
 
-                <p className="mt-1 max-w-sm text-sm text-gray-500">{error}</p>
+                <p className="mt-1 max-w-sm text-sm text-muted-foreground">{error}</p>
 
                 <Button
                     type="button"
@@ -66,9 +66,9 @@ function FinalUi({
     }
 
     return (
-        <div className="mt-3 flex flex-col items-center rounded-2xl border bg-white p-5 text-center shadow-sm">
+        <div className="mt-3 flex flex-col items-center rounded-2xl border bg-card p-5 text-center shadow-sm">
             {isReady ? (
-                <div className="rounded-full bg-green-50 p-3 text-green-600">
+                <div className="rounded-full bg-green-50 p-3 text-green-600 dark:bg-green-950/50 dark:text-green-400">
                     <CheckCircle2 className="h-8 w-8" />
                 </div>
             ) : (
@@ -83,7 +83,7 @@ function FinalUi({
                     : "✈️ Planning your dream trip..."}
             </h2>
 
-            <p className="mt-1 max-w-sm text-sm text-gray-500">
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
                 {isReady
                     ? `Hotels, activities, and daily itineraries for ${
                           tripDetail?.destination || "your destination"

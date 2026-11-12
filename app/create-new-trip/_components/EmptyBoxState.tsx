@@ -3,25 +3,26 @@ import React from 'react'
 
 function EmptyBoxState({onSelectOption}: any) {
     return (
-        <div className='mt-9'>
-            <h2 className='font-bold text-3xl text-center'>Start Planning your <strong className='text-primary'>Trip</strong> using AI</h2>
-            <p className='text-center text-gray-400 mt-2'>Discover personalized travel itineraries, find the best destinations, and plan your dream vacation effortlessly with the power of AI. Let our smart assistant do the hard work while you enjoy the journey.</p>
+        <div className='w-full'>
+            <h2 className='text-center text-2xl font-bold sm:text-3xl'>Start Planning your <strong className='text-primary'>Trip</strong> using AI</h2>
+            <p className='mt-2 text-center text-sm text-muted-foreground sm:text-base'>Discover personalized travel itineraries, find the best destinations, and plan your dream vacation effortlessly with the power of AI. Let our smart assistant do the hard work while you enjoy the journey.</p>
             
-            <div className='max-w-4xl w-full mt-6 flex flex-wrap justify-center gap-3'>
+            <div className='mt-6 flex w-full max-w-4xl flex-wrap justify-center gap-2 sm:gap-3'>
                 {suggestions.map((suggestion, index) => (
-                    <div
+                    <button
                         key={index}
+                        type='button'
                         onClick={() => onSelectOption(suggestion.title)}
-                        className='flex items-center gap-2 border rounded-full px-4 py-2.5 cursor-pointer hover:bg-primary/10 hover:border-primary/40 transition-colors'
+                        className='flex items-center gap-2 rounded-full border px-4 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/10'
                     >
-                        <div className='text-primary'>
+                        <span className='text-primary'>
                             {suggestion.icon}
-                        </div>
+                        </span>
 
-                        <h2 className='text-sm font-medium'>
+                        <span className='text-sm font-medium'>
                             {suggestion.title}
-                        </h2>
-                    </div>
+                        </span>
+                    </button>
                 ))}
             </div>
         </div>

@@ -64,10 +64,10 @@ function HotelCardItem({ hotel, destination }: Props) {
             </div>
 
             <h2 className='font-semibold text-lg'>{hotel?.hotel_name}</h2>
-            <h2 className='text-gray-500 text-sm line-clamp-1'>{address}</h2>
+            <h2 className='text-muted-foreground text-sm line-clamp-1'>{address}</h2>
 
             {hotel?.description && (
-                <p className='text-xs text-gray-500 line-clamp-2'>
+                <p className='text-xs text-muted-foreground line-clamp-2'>
                     {hotel.description}
                 </p>
             )}
@@ -80,7 +80,7 @@ function HotelCardItem({ hotel, destination }: Props) {
                     <p className='flex gap-1 items-center text-sm text-yellow-500'>
                         <Star className='w-4 h-4' /> {rating}
                         {place?.userRatingCount ? (
-                            <span className='text-xs text-gray-400'>
+                            <span className='text-xs text-muted-foreground'>
                                 ({place.userRatingCount})
                             </span>
                         ) : null}
@@ -99,7 +99,7 @@ function HotelCardItem({ hotel, destination }: Props) {
                     href={photoCreditUrl}
                     target='_blank'
                     rel='noopener noreferrer'
-                    className='text-[10px] text-gray-400 line-clamp-1 hover:underline'
+                    className='text-[10px] text-muted-foreground line-clamp-1 hover:underline'
                 >
                     Photo: {photoCreditTitle || 'Wikimedia Commons'}
                 </a>

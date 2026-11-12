@@ -15,6 +15,9 @@ export const metadata: Metadata = {
 
 const outfit = Outfit({ subsets: ['latin'] })
 
+// Runs before first paint so a saved dark theme never flashes light.
+const themeScript = `(function(){try{var stored=localStorage.getItem("theme");var isDark=stored?stored==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;var root=document.documentElement;root.classList.toggle("dark",isDark);root.style.colorScheme=isDark?"dark":"light";}catch(e){}})();`
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <ClerkProvider>
@@ -24,6 +27,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         suppressHydrationWarning
       >
         <body className="min-h-full flex flex-col">
+          <script dangerouslySetInnerHTML={{ __html: themeScript }} />
           <ConvexClientProvider>
             {children}
           </ConvexClientProvider>

@@ -67,6 +67,7 @@ function ChatBox({ onTripGenerated, onViewTrip }: ChatBoxProps) {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({
             behavior: "smooth",
+            block: "nearest",
         });
     }, [messages, loading]);
 
@@ -248,13 +249,20 @@ function ChatBox({ onTripGenerated, onViewTrip }: ChatBoxProps) {
         messages[messages.length - 1]?.ui?.toLowerCase() === "final";
 
     return (
-        <div className="flex h-[80vh] flex-col">
-            {messages?.length == 0 &&
-                <EmptyBoxState onSelectOption={(v: string) => sendMessage(v)} />
-            }
+        <div className="flex h-full min-h-0 flex-col">
+            {messages?.length == 0 && (
+                <div className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto">
+                    <EmptyBoxState
+                        onSelectOption={(v: string) => sendMessage(v)}
+                    />
+                </div>
+            )}
+
             {/* Chat messages */}
             <section
-                className="flex-1 overflow-y-auto p-4"
+                className={`overflow-y-auto p-4 ${
+                    messages?.length == 0 ? "hidden" : "min-h-0 flex-1"
+                }`}
                 aria-live="polite"
             >
                 {messages.map((message, index) => {
@@ -331,7 +339,7 @@ function ChatBox({ onTripGenerated, onViewTrip }: ChatBoxProps) {
             )}
 
             {/* Message input */}
-            <section className="pt-2">
+            <section className="shrink-0 pt-2">
                 <div className="relative rounded-2xl border bg-background p-4 shadow-sm">
                     <Textarea
                         id="trip-planner-input"
