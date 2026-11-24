@@ -1,6 +1,6 @@
 "use client"
 import { Button } from '@/components/ui/button'
-import { SignInButton, useUser } from '@clerk/nextjs'
+import { SignInButton, UserButton, useUser } from '@clerk/nextjs'
 import Image from 'next/image'
 import Link from 'next/link'
 import React from 'react'
@@ -48,6 +48,7 @@ function Header() {
             <div className='flex shrink-0 items-center gap-2'>
                 <ThemeToggle />
 
+
                 {!user ? <SignInButton mode='modal'>
                     <Button className='whitespace-nowrap'>Get Started</Button>
                 </SignInButton> :
@@ -55,8 +56,8 @@ function Header() {
                         <Button className='whitespace-nowrap'>Create New Trip</Button>
                     </Link>
                 }
-            </div>
 
+            </div>
 
         </div>
     )

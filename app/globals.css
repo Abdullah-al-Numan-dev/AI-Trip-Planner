@@ -147,3 +147,8 @@ html.theme-switching *::before,
 html.theme-switching *::after {
   transition: none !important;
 }
+
+/* Tone down the globe canvas only, leaving the pins and labels bright. */
+.globe-map-dim .mapboxgl-canvas {
+  filter: brightness(0.85) saturate(0.97);
+}

@@ -15,8 +15,8 @@ type Props = {
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_API_KEY;
 
-// The globe lives in its own framed panel, so keep it dark in both app themes.
-const MAP_STYLE = "mapbox://styles/mapbox/dark-v11";
+// Bright streets style gives the blue oceans / green land globe look.
+const MAP_STYLE = "mapbox://styles/mapbox/streets-v12";
 
 const MARKER_COLORS = {
     source: "#38bdf8",
@@ -137,12 +137,13 @@ export default function GlobalMap({
             }
 
             const applyFog = () => {
+                // Bright halo and blue oceans to match the reference globe.
                 map.setFog({
-                    color: "rgb(10, 16, 30)",
-                    "high-color": "rgb(32, 68, 118)",
-                    "horizon-blend": 0.04,
-                    "space-color": "rgb(3, 7, 18)",
-                    "star-intensity": 0.35,
+                    color: "rgb(201, 222, 245)",
+                    "high-color": "rgb(135, 190, 235)",
+                    "horizon-blend": 0.05,
+                    "space-color": "rgb(12, 28, 50)",
+                    "star-intensity": 0.08,
                 });
             };
 
@@ -252,7 +253,7 @@ export default function GlobalMap({
     return (
         <div
             ref={containerRef}
-            className='h-full w-full'
+            className='globe-map-dim h-full w-full'
             aria-hidden={interactive ? undefined : "true"}
         />
     );
