@@ -123,6 +123,15 @@ export default function GlobalMap({
             });
             mapRef.current = map;
 
+            // The panel can be hidden when the map mounts (Chat tab active),
+            // so resize as soon as it becomes visible and gets real dimensions.
+            const resizeObserver = new ResizeObserver(() => {
+                if (mapRef.current && container.clientWidth && container.clientHeight) {
+                    map.resize();
+                }
+            });
+            resizeObserver.observe(container);
+
             if (interactive) {
                 map.addControl(
                     new mapboxgl.NavigationControl({ showCompass: false }),
@@ -162,6 +171,7 @@ export default function GlobalMap({
             }
 
             return () => {
+                resizeObserver.disconnect();
                 if (frameRef.current !== null) {
                     window.cancelAnimationFrame(frameRef.current);
                 }
