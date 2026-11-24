@@ -1,6 +1,6 @@
 "use client"
 import { Button } from '@/components/ui/button'
-import { Clock, ExternalLink, MapPin, Star, Ticket } from 'lucide-react'
+import { Clock, ExternalLink, Globe2, MapPin, Star, Ticket } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import React from 'react'
@@ -11,9 +11,10 @@ import { usePlaceDetails } from './usePlaceDetails'
 type Props = {
     activity: Activity
     destination?: string
+    onViewOnMap?: () => void
 }
 
-function PlaceCardItem({ activity, destination }: Props) {
+function PlaceCardItem({ activity, destination, onViewOnMap }: Props) {
     const placeName = activity?.place_name || activity?.place_address || ''
 
     const {
@@ -91,15 +92,28 @@ function PlaceCardItem({ activity, destination }: Props) {
             <p className='flex items-center text-orange-400 gap-2 line-clamp-1 text-sm'>
                 <Clock className='w-4 h-4' /> {activity?.best_time_to_visit}
             </p>
-            <Link href={mapsUrl} target='_blank'>
-                <Button
-                    size={'sm'}
-                    variant={'outline'}
-                    className='w-full mt-2 flex items-center gap-1'
-                >
-                    View <ExternalLink className='w-4 h-4' />
-                </Button>
-            </Link>
+            <div className='mt-2 flex flex-col gap-2'>
+                {onViewOnMap && (
+                    <Button
+                        size='sm'
+                        className='flex w-full items-center justify-center gap-1'
+                        onClick={onViewOnMap}
+                    >
+                        <Globe2 className='w-4 h-4' />
+                        View on map
+                    </Button>
+                )}
+                <Link href={mapsUrl} target='_blank' className='w-full'>
+                    <Button
+                        size='sm'
+                        variant='outline'
+                        className='flex w-full items-center justify-center gap-1'
+                    >
+                        <ExternalLink className='w-4 h-4' />
+                        Google Maps
+                    </Button>
+                </Link>
+            </div>
 
             {photoCreditUrl && (
                 <a

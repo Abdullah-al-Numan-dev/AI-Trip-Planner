@@ -60,3 +60,33 @@ export type PlaceInfo = {
     types?: string[];
     photoUrl?: string | null;
 };
+
+/** A place the user asked to see on the 3D globe. */
+export type MapFocus = {
+    /** Changes on every click so viewing the same place twice still refocuses. */
+    id: string;
+    name: string;
+    coordinates?: [number, number];
+    query?: string;
+    url?: string;
+};
+
+/** Open a place in Google Maps, the same destination the card links to. */
+export function googleMapsUrl(name: string, address?: string) {
+    return (
+        'https://www.google.com/maps/search/?api=1&query=' +
+        encodeURIComponent([name, address].filter(Boolean).join(', '))
+    );
+}
+
+/** AI places use { latitude, longitude }; Mapbox wants [longitude, latitude]. */
+export function geoToLngLat(geo?: GeoCoordinates): [number, number] | undefined {
+    if (!geo) return undefined;
+
+    const latitude = Number(geo.latitude);
+    const longitude = Number(geo.longitude);
+
+    return Number.isFinite(latitude) && Number.isFinite(longitude)
+        ? [longitude, latitude]
+        : undefined;
+}

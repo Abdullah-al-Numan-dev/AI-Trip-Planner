@@ -11,7 +11,7 @@ import TripSidebar from "./_components/TripSidebar";
 import { Button } from "@/components/ui/button";
 import { useUserDetail } from "@/app/provider";
 import dynamic from "next/dynamic";
-import type { SavedTrip, TripPlan } from "./_components/types";
+import type { MapFocus, SavedTrip, TripPlan } from "./_components/types";
 
 const GlobalMap = dynamic(() => import("./_components/GlobalMap"), {
     ssr: false,
@@ -41,6 +41,7 @@ function CreateNewTrip() {
         source?: string;
         destination?: string;
     }>({});
+    const [focusedPlace, setFocusedPlace] = useState<MapFocus | null>(null);
 
     const trips = (savedTrips ?? []) as SavedTrip[];
 
@@ -61,6 +62,7 @@ function CreateNewTrip() {
         setMobileView("chat");
         setSidebarOpen(false);
         setMapLocation({});
+        setFocusedPlace(null);
     };
 
     const openSavedTrip = (trip: SavedTrip) => {
@@ -74,6 +76,7 @@ function CreateNewTrip() {
             source: trip.tripDetail?.origin,
             destination: trip.tripDetail?.destination,
         });
+        setFocusedPlace(null);
     };
 
     const handleTripGenerated = (trip: TripPlan, tripId: string) => {
@@ -92,6 +95,12 @@ function CreateNewTrip() {
         destination?: string;
     }) => {
         setMapLocation((current) => ({ ...current, ...location }));
+    };
+
+    const handleViewPlace = (focus: MapFocus) => {
+        setFocusedPlace(focus);
+        setSideTab("map");
+        setMobileView("map");
     };
 
     // Kept as a single mounted instance so switching its column on "View Trip"
@@ -154,7 +163,11 @@ function CreateNewTrip() {
             </div>
 
             <div className='min-h-0 flex-1 overflow-y-auto p-3'>
-                <Itinerary key={activeTripId ?? "trip"} tripData={tripDetail} />
+                <Itinerary
+                    key={activeTripId ?? "trip"}
+                    tripData={tripDetail}
+                    onViewPlace={handleViewPlace}
+                />
             </div>
         </div>
     );
@@ -164,6 +177,7 @@ function CreateNewTrip() {
             <GlobalMap
                 source={mapLocation.source}
                 destination={mapLocation.destination}
+                focus={focusedPlace}
                 interactive
             />
         </div>

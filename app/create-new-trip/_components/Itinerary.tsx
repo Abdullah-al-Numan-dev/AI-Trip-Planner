@@ -4,14 +4,30 @@ import React, { useRef } from 'react'
 import { Timeline } from "@/components/ui/timeline";
 import HotelCardItem from './HotelCardItem';
 import PlaceCardItem from './PlaceCardItem';
-import type { TripPlan } from './types';
+import type { GeoCoordinates, MapFocus, TripPlan } from './types';
+import { geoToLngLat, googleMapsUrl } from './types';
 
 type Props = {
     tripData?: TripPlan | null;
+    onViewPlace?: (focus: MapFocus) => void;
 };
 
-function Itinerary({ tripData }: Props) {
+function Itinerary({ tripData, onViewPlace }: Props) {
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    const focusPlace = (
+        name: string,
+        address?: string,
+        coordinates?: GeoCoordinates
+    ) => {
+        onViewPlace?.({
+            id: `${name}-${Date.now()}-${Math.random()}`,
+            name,
+            coordinates: geoToLngLat(coordinates),
+            query: [name, address].filter(Boolean).join(', '),
+            url: googleMapsUrl(name, address),
+        });
+    };
 
     if (!tripData) {
         return (
@@ -45,6 +61,18 @@ function Itinerary({ tripData }: Props) {
                                 key={`${hotel?.hotel_name ?? 'hotel'}-${index}`}
                                 hotel={hotel}
                                 destination={tripData.destination}
+                                onViewOnMap={
+                                    onViewPlace
+                                        ? () =>
+                                              focusPlace(
+                                                  hotel?.hotel_name ||
+                                                      hotel?.hotel_address ||
+                                                      'Hotel',
+                                                  hotel?.hotel_address,
+                                                  hotel?.geo_coordinates
+                                              )
+                                        : undefined
+                                }
                             />
                         ))}
                     </div>
@@ -77,6 +105,18 @@ function Itinerary({ tripData }: Props) {
                                     key={`${dayIndex}-${activityIndex}-${activity?.place_name ?? 'place'}`}
                                     activity={activity}
                                     destination={tripData.destination}
+                                    onViewOnMap={
+                                        onViewPlace
+                                            ? () =>
+                                                  focusPlace(
+                                                      activity?.place_name ||
+                                                          activity?.place_address ||
+                                                          'Place',
+                                                      activity?.place_address,
+                                                      activity?.geo_coordinates
+                                                  )
+                                            : undefined
+                                    }
                                 />
                             )
                         )}

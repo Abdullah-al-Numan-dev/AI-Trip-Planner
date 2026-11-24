@@ -6,10 +6,13 @@ import mapboxgl, {
     type Marker as MapboxMarker,
 } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import type { MapFocus } from "./types";
+import { googleMapsUrl } from "./types";
 
 type Props = {
     source?: string | null;
     destination?: string | null;
+    focus?: MapFocus | null;
     interactive?: boolean;
 };
 
@@ -21,6 +24,7 @@ const MAP_STYLE = "mapbox://styles/mapbox/streets-v12";
 const MARKER_COLORS = {
     source: "#38bdf8",
     destination: "#fb923c",
+    focus: "#a78bfa",
 } as const;
 
 /** Turn a place name from the chat into [longitude, latitude]. */
@@ -52,12 +56,34 @@ async function geocode(
     }
 }
 
-function makeMarkerElement(kind: keyof typeof MARKER_COLORS, label: string) {
+function makeMarkerElement(
+    kind: keyof typeof MARKER_COLORS,
+    label: string,
+    url?: string
+) {
     const color = MARKER_COLORS[kind];
 
     const element = document.createElement("div");
     element.style.cssText =
-        "display:flex;align-items:center;gap:6px;pointer-events:none;";
+        `display:flex;align-items:center;gap:6px;` +
+        `pointer-events:${url ? "auto" : "none"};` +
+        `${url ? "cursor:pointer;" : ""}`;
+
+    if (url) {
+        element.title = `Open ${label} in Google Maps`;
+        element.setAttribute("role", "link");
+        element.tabIndex = 0;
+
+        const openMaps = (event: Event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            window.open(url, "_blank", "noopener,noreferrer");
+        };
+        element.addEventListener("click", openMaps);
+        element.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") openMaps(event);
+        });
+    }
 
     const dot = document.createElement("span");
     dot.style.cssText =
@@ -83,11 +109,13 @@ function makeMarkerElement(kind: keyof typeof MARKER_COLORS, label: string) {
 export default function GlobalMap({
     source,
     destination,
+    focus,
     interactive = false,
 }: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<MapboxMap | null>(null);
     const markersRef = useRef<MapboxMarker[]>([]);
+    const focusMarkersRef = useRef<MapboxMarker[]>([]);
     const frameRef = useRef<number | null>(null);
     const trackingRef = useRef(false);
     const draggingRef = useRef(false);
@@ -177,6 +205,8 @@ export default function GlobalMap({
                 }
                 markersRef.current.forEach((marker) => marker.remove());
                 markersRef.current = [];
+                focusMarkersRef.current.forEach((marker) => marker.remove());
+                focusMarkersRef.current = [];
                 map.remove();
                 mapRef.current = null;
             };
@@ -226,7 +256,11 @@ export default function GlobalMap({
             if (sourcePoint && source) {
                 markersRef.current.push(
                     new mapboxgl.Marker({
-                        element: makeMarkerElement("source", source),
+                        element: makeMarkerElement(
+                            "source",
+                            source,
+                            googleMapsUrl(source)
+                        ),
                         anchor: "left",
                     })
                         .setLngLat(sourcePoint)
@@ -237,7 +271,11 @@ export default function GlobalMap({
             if (destinationPoint && destination) {
                 markersRef.current.push(
                     new mapboxgl.Marker({
-                        element: makeMarkerElement("destination", destination),
+                        element: makeMarkerElement(
+                            "destination",
+                            destination,
+                            googleMapsUrl(destination)
+                        ),
                         anchor: "left",
                     })
                         .setLngLat(destinationPoint)
@@ -250,6 +288,60 @@ export default function GlobalMap({
 
         return () => controller.abort();
     }, [source, destination]);
+
+    // A "View on map" click in the day plan flies to that exact place and
+    // pins it, like clicking a location in a maps app.
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !focus) return;
+
+        const controller = new AbortController();
+        focusMarkersRef.current.forEach((marker) => marker.remove());
+        focusMarkersRef.current = [];
+
+        const showFocus = async () => {
+            let point = focus.coordinates ?? null;
+
+            if (!point) {
+                point = await geocode(
+                    focus.query ?? focus.name,
+                    controller.signal
+                );
+            }
+
+            if (controller.signal.aborted || !mapRef.current) return;
+
+            if (point) {
+                map.flyTo({
+                    center: point,
+                    zoom: focus.coordinates ? 11 : 5,
+                    duration: 2200,
+                    essential: true,
+                });
+
+                focusMarkersRef.current.push(
+                    new mapboxgl.Marker({
+                        element: makeMarkerElement(
+                            "focus",
+                            focus.name,
+                            focus.url ?? googleMapsUrl(focus.name, focus.query)
+                        ),
+                        anchor: "left",
+                    })
+                        .setLngLat(point)
+                        .addTo(map)
+                );
+            }
+        };
+
+        void showFocus();
+
+        return () => {
+            controller.abort();
+            focusMarkersRef.current.forEach((marker) => marker.remove());
+            focusMarkersRef.current = [];
+        };
+    }, [focus]);
 
     if (!TOKEN || failed) {
         return (

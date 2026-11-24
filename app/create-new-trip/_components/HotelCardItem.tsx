@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 import Link from 'next/link'
 import React from 'react'
-import { Star, Wallet } from 'lucide-react'
+import { Globe2, Star, Wallet, ExternalLink } from 'lucide-react'
 import type { Hotel } from './types'
 import { FALLBACK_IMAGE } from './image'
 import { usePlaceDetails } from './usePlaceDetails'
@@ -12,9 +12,10 @@ import { usePlaceDetails } from './usePlaceDetails'
 type Props = {
     hotel: Hotel
     destination?: string
+    onViewOnMap?: () => void
 }
 
-function HotelCardItem({ hotel, destination }: Props) {
+function HotelCardItem({ hotel, destination, onViewOnMap }: Props) {
     const placeName = hotel?.hotel_name || hotel?.hotel_address || ''
 
     const {
@@ -88,11 +89,24 @@ function HotelCardItem({ hotel, destination }: Props) {
                 )}
             </div>
 
-            <Link href={mapsUrl} target='_blank'>
-                <Button variant={'outline'} className='mt-1 w-full'>
-                    View Details
-                </Button>
-            </Link>
+            <div className='mt-1 flex flex-col gap-2'>
+                {onViewOnMap && (
+                    <Button
+                        variant='outline'
+                        className='flex w-full items-center justify-center gap-1'
+                        onClick={onViewOnMap}
+                    >
+                        <Globe2 className='w-4 h-4' />
+                        View on map
+                    </Button>
+                )}
+                <Link href={mapsUrl} target='_blank' className='w-full'>
+                    <Button variant={'outline'} className='flex w-full items-center justify-center gap-1'>
+                        <ExternalLink className='w-4 h-4' />
+                        {onViewOnMap ? 'Google Maps' : 'View Details'}
+                    </Button>
+                </Link>
+            </div>
 
             {photoCreditUrl && (
                 <a
