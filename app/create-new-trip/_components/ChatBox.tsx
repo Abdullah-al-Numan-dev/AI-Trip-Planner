@@ -14,6 +14,7 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useUserDetail } from "@/app/provider";
 import { v4 as uuidv4 } from "uuid";
+import Link from "next/link";
 import type { TripPlan } from "./types";
 
 type Message = {
@@ -55,6 +56,7 @@ function ChatBox({ onTripGenerated, onViewTrip }: ChatBoxProps) {
     const [errorMessage, setErrorMessage] = useState("");
     const [retryMessage, setRetryMessage] = useState<string | null>(null);
     const [finalError, setFinalError] = useState<string | null>(null);
+    const [upgradeUrl, setUpgradeUrl] = useState<string | null>(null);
     const [tripDetail, setTripDetail] = useState<TripPlan>();
     const [tripId, setTripId] = useState<string>("");
 
@@ -102,6 +104,7 @@ function ChatBox({ onTripGenerated, onViewTrip }: ChatBoxProps) {
         setLoading(true);
         setErrorMessage("");
         setRetryMessage(null);
+        setUpgradeUrl(null);
 
         if (isFinalRequest) {
             setFinalError(null);
@@ -152,9 +155,10 @@ function ChatBox({ onTripGenerated, onViewTrip }: ChatBoxProps) {
         } catch (error: unknown) {
             let message =
                 "Something went wrong. Please try again.";
+            let status: number | undefined;
 
             if (axios.isAxiosError(error)) {
-                const status = error.response?.status;
+                status = error.response?.status;
                 const serverMessage = error.response?.data?.message;
 
                 if (status === 429) {
@@ -162,6 +166,11 @@ function ChatBox({ onTripGenerated, onViewTrip }: ChatBoxProps) {
                         typeof serverMessage === "string"
                             ? serverMessage
                             : "You're sending requests too quickly. Please wait a moment and try again.";
+
+                    const upgrade = error.response?.data?.upgradeUrl;
+                    if (typeof upgrade === "string") {
+                        setUpgradeUrl(upgrade);
+                    }
                 } else if (status === 502) {
                     message =
                         serverMessage ||
@@ -180,7 +189,10 @@ function ChatBox({ onTripGenerated, onViewTrip }: ChatBoxProps) {
                 setFinalError(message);
             } else {
                 setErrorMessage(message);
-                setRetryMessage(input);
+                // Retrying a rate-limited request just gets another 429.
+                if (status !== 429) {
+                    setRetryMessage(input);
+                }
             }
         } finally {
             setLoading(false);
@@ -216,6 +228,7 @@ function ChatBox({ onTripGenerated, onViewTrip }: ChatBoxProps) {
                     loading={loading}
                     disabled={loading || !tripDetail}
                     error={finalError}
+                    upgradeUrl={upgradeUrl}
                     onRetry={() => sendMessage("", true)}
                     onViewTrip={() => {
                         console.log(
@@ -323,6 +336,15 @@ function ChatBox({ onTripGenerated, onViewTrip }: ChatBoxProps) {
                                 <RotateCcw className="mr-2 h-4 w-4" />
                                 Retry
                             </Button>
+                        )}
+
+                        {upgradeUrl && (
+                            <Link
+                                href={upgradeUrl}
+                                className="font-medium underline underline-offset-4"
+                            >
+                                See plans →
+                            </Link>
                         )}
                     </div>
                 )}

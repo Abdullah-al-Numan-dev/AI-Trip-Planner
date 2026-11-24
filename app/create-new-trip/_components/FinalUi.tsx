@@ -9,6 +9,7 @@ import {
     RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import type { TripPlan } from "./types";
 
 type Props = {
@@ -17,6 +18,7 @@ type Props = {
     tripDetail?: TripPlan | null;
     loading?: boolean;
     error?: string | null;
+    upgradeUrl?: string | null;
     onRetry?: () => void;
 };
 
@@ -26,6 +28,7 @@ function FinalUi({
     tripDetail,
     loading,
     error,
+    upgradeUrl,
     onRetry,
 }: Props) {
     const isReady = Boolean(tripDetail);
@@ -43,24 +46,35 @@ function FinalUi({
 
                 <p className="mt-1 max-w-sm text-sm text-muted-foreground">{error}</p>
 
-                <Button
-                    type="button"
-                    className="mt-4 w-full bg-primary font-medium text-primary-foreground transition-all hover:bg-primary/90"
-                    onClick={onRetry}
-                    disabled={loading || !onRetry}
-                >
-                    {loading ? (
-                        <span className="flex items-center gap-2">
-                            <LoaderCircle className="h-4 w-4 animate-spin" />
-                            Retrying...
-                        </span>
-                    ) : (
-                        <span className="flex items-center gap-2">
-                            <RefreshCw className="h-4 w-4" />
-                            Try Again
-                        </span>
-                    )}
-                </Button>
+                {!upgradeUrl && (
+                    <Button
+                        type="button"
+                        className="mt-4 w-full bg-primary font-medium text-primary-foreground transition-all hover:bg-primary/90"
+                        onClick={onRetry}
+                        disabled={loading || !onRetry}
+                    >
+                        {loading ? (
+                            <span className="flex items-center gap-2">
+                                <LoaderCircle className="h-4 w-4 animate-spin" />
+                                Retrying...
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-2">
+                                <RefreshCw className="h-4 w-4" />
+                                Try Again
+                            </span>
+                        )}
+                    </Button>
+                )}
+
+                {upgradeUrl && (
+                    <Link
+                        href={upgradeUrl}
+                        className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
+                    >
+                        See plans for unlimited trips →
+                    </Link>
+                )}
             </div>
         );
     }

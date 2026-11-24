@@ -6,6 +6,7 @@ import {
     CHAT_TURN_COST,
     FINAL_TRIP_COST,
 } from "@/lib/arcjet";
+import { PRO_PLAN } from "@/lib/billing";
 
 const openai = new OpenAI({
     baseURL: "https://openrouter.ai/api/v1",
@@ -301,9 +302,7 @@ export async function POST(req: NextRequest) {
 
         const isFinalRequest = Boolean(isFinal);
 
-        // Per-user free-tier allowance. The final itinerary is a much larger
-        // completion than a chat turn, so it withdraws more tokens.
-        const { userId } = await auth();
+        const { userId, has } = await auth();
 
         if (!userId) {
             return NextResponse.json(
@@ -315,45 +314,51 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const decision = await aj.protect(req, {
-            userId,
-            requested: isFinalRequest ? FINAL_TRIP_COST : CHAT_TURN_COST,
-        });
+        // Paid Pro users are unlimited; only the free tier is rate limited.
+        if (!has({ plan: PRO_PLAN })) {
+            // Per-user free-tier allowance. The final itinerary is a much
+            // larger completion than a chat turn, so it withdraws more tokens.
+            const decision = await aj.protect(req, {
+                userId,
+                requested: isFinalRequest ? FINAL_TRIP_COST : CHAT_TURN_COST,
+            });
 
-        if (decision.isDenied()) {
-            if (decision.reason.isRateLimit()) {
-                const retryAfter = Math.max(
-                    1,
-                    Math.ceil(decision.reason.reset)
-                );
+            if (decision.isDenied()) {
+                if (decision.reason.isRateLimit()) {
+                    const retryAfter = Math.max(
+                        1,
+                        Math.ceil(decision.reason.reset)
+                    );
+
+                    return NextResponse.json(
+                        {
+                            success: false,
+                            message: `You've reached your free AI limit for now. Your allowance resets in about ${formatResetTime(
+                                retryAfter
+                            )}. Upgrade to Pro for unlimited trips, or keep using your saved trips in the sidebar.`,
+                            upgradeUrl: "/pricing",
+                            rateLimit: {
+                                limit: decision.reason.max,
+                                remaining: decision.reason.remaining,
+                                reset: retryAfter,
+                            },
+                        },
+                        {
+                            status: 429,
+                            headers: { "Retry-After": String(retryAfter) },
+                        }
+                    );
+                }
 
                 return NextResponse.json(
                     {
                         success: false,
-                        message: `You've reached your free AI limit for now. Your allowance resets in about ${formatResetTime(
-                            retryAfter
-                        )}. Your saved trips are still available in the sidebar.`,
-                        rateLimit: {
-                            limit: decision.reason.max,
-                            remaining: decision.reason.remaining,
-                            reset: retryAfter,
-                        },
+                        message:
+                            "This request was blocked. Please try again later.",
                     },
-                    {
-                        status: 429,
-                        headers: { "Retry-After": String(retryAfter) },
-                    }
+                    { status: 403 }
                 );
             }
-
-            return NextResponse.json(
-                {
-                    success: false,
-                    message:
-                        "This request was blocked. Please try again later.",
-                },
-                { status: 403 }
-            );
         }
 
         // Request AI response
