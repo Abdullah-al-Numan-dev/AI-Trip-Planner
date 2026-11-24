@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Menu, Plus } from "lucide-react";
+import { Globe2, List, Menu, Plus } from "lucide-react";
 import { useQuery } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
@@ -17,7 +17,8 @@ const GlobalMap = dynamic(() => import("./_components/GlobalMap"), {
     ssr: false,
 });
 
-type MobilePanel = "chat" | "itinerary";
+type MobilePanel = "chat" | "panel";
+type RightTab = "map" | "itinerary";
 
 function CreateNewTrip() {
     const { userDetail } = useUserDetail();
@@ -31,7 +32,7 @@ function CreateNewTrip() {
     const [chatKey, setChatKey] = useState(0);
     const [tripDetail, setTripDetail] = useState<TripPlan | null>(null);
     const [activeTripId, setActiveTripId] = useState<string | null>(null);
-    const [showItinerary, setShowItinerary] = useState(false);
+    const [rightTab, setRightTab] = useState<RightTab>("map");
     const [mobilePanel, setMobilePanel] = useState<MobilePanel>("chat");
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [mapLocation, setMapLocation] = useState<{
@@ -53,7 +54,7 @@ function CreateNewTrip() {
         setChatKey((key) => key + 1);
         setTripDetail(null);
         setActiveTripId(null);
-        setShowItinerary(false);
+        setRightTab("map");
         setMobilePanel("chat");
         setSidebarOpen(false);
         setMapLocation({});
@@ -62,9 +63,13 @@ function CreateNewTrip() {
     const openSavedTrip = (trip: SavedTrip) => {
         setTripDetail(trip.tripDetail);
         setActiveTripId(trip.tripId);
-        setShowItinerary(true);
-        setMobilePanel("itinerary");
+        setRightTab("itinerary");
+        setMobilePanel("panel");
         setSidebarOpen(false);
+        setMapLocation({
+            source: trip.tripDetail?.origin,
+            destination: trip.tripDetail?.destination,
+        });
     };
 
     const handleTripGenerated = (trip: TripPlan, tripId: string) => {
@@ -73,8 +78,8 @@ function CreateNewTrip() {
     };
 
     const handleViewTrip = () => {
-        setShowItinerary(true);
-        setMobilePanel("itinerary");
+        setRightTab("itinerary");
+        setMobilePanel("panel");
     };
 
     const handleLocationDetected = (location: {
@@ -101,22 +106,67 @@ function CreateNewTrip() {
         onSelectTrip: openSavedTrip,
     };
 
-    return (
-        <div className='relative flex min-h-0 flex-1 overflow-hidden bg-background'>
-            {/* Globe background. The scrim keeps chat text readable in both themes. */}
-            <div className='pointer-events-none absolute inset-0 z-0' aria-hidden='true'>
-                <GlobalMap
-                    source={mapLocation.source}
-                    destination={mapLocation.destination}
-                />
-            </div>
-            <div
-                className='pointer-events-none absolute inset-0 z-[1] bg-background/50'
-                aria-hidden='true'
-            />
+    const rightPanel = (
+        <div className='flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm'>
+            <div className='flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2'>
+                <div className='flex items-center gap-1 rounded-lg bg-muted p-1'>
+                    <button
+                        type='button'
+                        onClick={() => setRightTab("map")}
+                        className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                            rightTab === "map"
+                                ? "bg-background text-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        <Globe2 className='h-3.5 w-3.5' />
+                        Map
+                    </button>
+                    <button
+                        type='button'
+                        onClick={() => setRightTab("itinerary")}
+                        disabled={!tripDetail}
+                        className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                            rightTab === "itinerary"
+                                ? "bg-background text-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        <List className='h-3.5 w-3.5' />
+                        Itinerary
+                    </button>
+                </div>
 
+                <span className='min-w-0 truncate text-xs text-muted-foreground'>
+                    {mapLocation.destination || "Explore the globe"}
+                </span>
+            </div>
+
+            <div className='min-h-0 flex-1'>
+                {rightTab === "map" ? (
+                    <div className='h-full w-full bg-slate-950'>
+                        <GlobalMap
+                            source={mapLocation.source}
+                            destination={mapLocation.destination}
+                            interactive
+                        />
+                    </div>
+                ) : (
+                    <div className='h-full overflow-y-auto p-3'>
+                        <Itinerary
+                            key={activeTripId ?? "trip"}
+                            tripData={tripDetail}
+                        />
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
+    return (
+        <div className='flex min-h-0 flex-1 overflow-hidden bg-background'>
             {/* Desktop sidebar */}
-            <div key='desktop-sidebar' className='relative z-10 hidden lg:flex'>
+            <div key='desktop-sidebar' className='hidden lg:flex'>
                 <TripSidebar {...sidebarProps} />
             </div>
 
@@ -138,7 +188,7 @@ function CreateNewTrip() {
                 </div>
             )}
 
-            <div key='main' className='relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
+            <div key='main' className='flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
                 {/* Mobile top bar */}
                 <div className='flex items-center gap-2 border-b px-2 py-2 lg:hidden'>
                     <Button
@@ -153,26 +203,43 @@ function CreateNewTrip() {
 
                     <div className='min-w-0 flex-1'>
                         <p className='truncate text-sm font-medium'>
-                            {showItinerary
-                                ? tripDetail?.destination || "Your trip"
+                            {mobilePanel === "panel"
+                                ? rightTab === "map"
+                                    ? "Trip map"
+                                    : tripDetail?.destination || "Your trip"
                                 : "New trip"}
                         </p>
                     </div>
 
-                    {showItinerary && (
+                    <Button
+                        type='button'
+                        variant='ghost'
+                        size='icon'
+                        aria-label='View globe'
+                        onClick={() => {
+                            setRightTab("map");
+                            setMobilePanel("panel");
+                        }}
+                    >
+                        <Globe2 className='h-4 w-4' />
+                    </Button>
+
+                    {tripDetail && (
                         <Button
                             type='button'
                             variant='outline'
                             size='sm'
                             onClick={() =>
                                 setMobilePanel((panel) =>
-                                    panel === "chat"
-                                        ? "itinerary"
-                                        : "chat"
+                                    panel === "chat" ? "panel" : "chat"
                                 )
                             }
                         >
-                            {mobilePanel === "chat" ? "View trip" : "Chat"}
+                            {mobilePanel === "chat"
+                                ? rightTab === "map"
+                                    ? "View map"
+                                    : "View trip"
+                                : "Chat"}
                         </Button>
                     )}
 
@@ -190,74 +257,21 @@ function CreateNewTrip() {
                 <div className='flex min-h-0 flex-1 overflow-hidden'>
                     {/* Chat column */}
                     <div
-                        className={`min-h-0 flex-col py-3 sm:py-4 ${
-                            showItinerary
-                                ? "w-full lg:w-[44%] lg:max-w-[560px] lg:min-w-[360px] lg:border-r"
-                                : "mx-auto w-full max-w-3xl"
-                        } ${
-                            showItinerary && mobilePanel === "itinerary"
-                                ? "hidden lg:flex"
-                                : "flex"
+                        className={`min-h-0 w-full flex-col py-3 sm:py-4 lg:flex lg:w-[52%] lg:border-r ${
+                            mobilePanel === "panel" ? "hidden lg:flex" : "flex"
                         }`}
                     >
-                        <div className='min-h-0 flex-1 px-3 sm:px-5'>
-                            {chat}
-                        </div>
+                        <div className='min-h-0 flex-1 px-3 sm:px-5'>{chat}</div>
                     </div>
 
-                    {/* Itinerary column */}
-                    {showItinerary && (
-                        <div
-                            className={`min-h-0 flex-1 overflow-hidden p-3 sm:p-4 lg:block ${
-                                mobilePanel === "itinerary"
-                                    ? "block"
-                                    : "hidden"
-                            }`}
-                        >
-                            <div className='flex h-full min-h-0 flex-col'>
-                                <div className='mb-3 hidden items-end justify-between gap-3 lg:flex'>
-                                    <div className='min-w-0'>
-                                        <p className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
-                                            {activeTripId
-                                                ? "Your itinerary"
-                                                : "Generated itinerary"}
-                                        </p>
-                                        <h2 className='truncate text-xl font-semibold'>
-                                            {tripDetail?.destination ||
-                                                "Your trip"}
-                                        </h2>
-                                        <p className='truncate text-sm text-muted-foreground'>
-                                            {[
-                                                tripDetail?.duration,
-                                                tripDetail?.group_size,
-                                                tripDetail?.budget,
-                                            ]
-                                                .filter(Boolean)
-                                                .join(" · ")}
-                                        </p>
-                                    </div>
-
-                                    <Button
-                                        type='button'
-                                        variant='outline'
-                                        size='sm'
-                                        className='shrink-0'
-                                        onClick={startNewChat}
-                                    >
-                                        <Plus className='mr-1 h-4 w-4' />
-                                        New chat
-                                    </Button>
-                                </div>
-
-                                <div className='min-h-0 flex-1'>
-                                    <Itinerary
-                                        key={activeTripId ?? "trip"}
-                                        tripData={tripDetail}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {/* Globe / itinerary panel */}
+                    <div
+                        className={`min-h-0 w-full flex-1 p-3 sm:p-4 lg:block ${
+                            mobilePanel === "panel" ? "block" : "hidden"
+                        }`}
+                    >
+                        {rightPanel}
+                    </div>
                 </div>
             </div>
         </div>

@@ -10,11 +10,13 @@ import "mapbox-gl/dist/mapbox-gl.css";
 type Props = {
     source?: string | null;
     destination?: string | null;
+    interactive?: boolean;
 };
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_API_KEY;
 
-const MAP_STYLE = "mapbox://styles/mapbox/streets-v12";
+// The globe lives in its own framed panel, so keep it dark in both app themes.
+const MAP_STYLE = "mapbox://styles/mapbox/dark-v11";
 
 const MARKER_COLORS = {
     source: "#38bdf8",
@@ -75,15 +77,20 @@ function makeMarkerElement(kind: keyof typeof MARKER_COLORS, label: string) {
 }
 
 /**
- * Decorative globe behind the chat. It spins slowly until the user names a
- * source or destination, then flies there and drops labelled pins.
+ * Globe for the trip panel. It spins slowly until the user names a source or
+ * destination, then flies there and drops labelled pins.
  */
-export default function GlobalMap({ source, destination }: Props) {
+export default function GlobalMap({
+    source,
+    destination,
+    interactive = false,
+}: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
     const mapRef = useRef<MapboxMap | null>(null);
     const markersRef = useRef<MapboxMarker[]>([]);
     const frameRef = useRef<number | null>(null);
     const trackingRef = useRef(false);
+    const draggingRef = useRef(false);
     const requestRef = useRef<AbortController | null>(null);
     const [failed, setFailed] = useState(false);
 
@@ -108,20 +115,34 @@ export default function GlobalMap({ source, destination }: Props) {
                 maxZoom: 8,
                 pitch: 0,
                 bearing: -12,
-                interactive: false,
+                interactive,
+                scrollZoom: false,
                 attributionControl: false,
                 antialias: true,
                 fadeDuration: 0,
             });
             mapRef.current = map;
 
+            if (interactive) {
+                map.addControl(
+                    new mapboxgl.NavigationControl({ showCompass: false }),
+                    "bottom-right"
+                );
+                map.on("dragstart", () => {
+                    draggingRef.current = true;
+                });
+                map.on("dragend", () => {
+                    draggingRef.current = false;
+                });
+            }
+
             const applyFog = () => {
                 map.setFog({
-                    color: "rgb(201, 222, 245)",
-                    "high-color": "rgb(135, 190, 235)",
-                    "horizon-blend": 0.05,
-                    "space-color": "rgb(12, 28, 50)",
-                    "star-intensity": 0.08,
+                    color: "rgb(10, 16, 30)",
+                    "high-color": "rgb(32, 68, 118)",
+                    "horizon-blend": 0.04,
+                    "space-color": "rgb(3, 7, 18)",
+                    "star-intensity": 0.35,
                 });
             };
 
@@ -131,7 +152,7 @@ export default function GlobalMap({ source, destination }: Props) {
             // Idle auto-rotation, paused once we start following the trip.
             if (!reduceMotion) {
                 const rotate = () => {
-                    if (mapRef.current && !trackingRef.current) {
+                    if (mapRef.current && !trackingRef.current && !draggingRef.current) {
                         map.setBearing((map.getBearing() + 0.018) % 360);
                     }
                     frameRef.current = window.requestAnimationFrame(rotate);
@@ -228,5 +249,11 @@ export default function GlobalMap({ source, destination }: Props) {
         );
     }
 
-    return <div ref={containerRef} className='h-full w-full' aria-hidden='true' />;
+    return (
+        <div
+            ref={containerRef}
+            className='h-full w-full'
+            aria-hidden={interactive ? undefined : "true"}
+        />
+    );
 }
