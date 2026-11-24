@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { auth } from "@clerk/nextjs/server";
+import {
+    aj,
+    CHAT_TURN_COST,
+    FINAL_TRIP_COST,
+} from "@/lib/arcjet";
 
 const openai = new OpenAI({
     baseURL: "https://openrouter.ai/api/v1",
@@ -229,6 +235,17 @@ function normalizeUi(rawUi: unknown, respText: string): ValidUi | null {
     return null;
 }
 
+function formatResetTime(seconds: number) {
+    const minutes = Math.ceil(seconds / 60);
+
+    if (minutes >= 60) {
+        const hours = Math.ceil(minutes / 60);
+        return `${hours} hour${hours === 1 ? "" : "s"}`;
+    }
+
+    return `${Math.max(1, minutes)} minute${minutes === 1 ? "" : "s"}`;
+}
+
 export async function POST(req: NextRequest) {
     try {
         // Check API key
@@ -283,6 +300,61 @@ export async function POST(req: NextRequest) {
         }
 
         const isFinalRequest = Boolean(isFinal);
+
+        // Per-user free-tier allowance. The final itinerary is a much larger
+        // completion than a chat turn, so it withdraws more tokens.
+        const { userId } = await auth();
+
+        if (!userId) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "Please sign in to plan a trip.",
+                },
+                { status: 401 }
+            );
+        }
+
+        const decision = await aj.protect(req, {
+            userId,
+            requested: isFinalRequest ? FINAL_TRIP_COST : CHAT_TURN_COST,
+        });
+
+        if (decision.isDenied()) {
+            if (decision.reason.isRateLimit()) {
+                const retryAfter = Math.max(
+                    1,
+                    Math.ceil(decision.reason.reset)
+                );
+
+                return NextResponse.json(
+                    {
+                        success: false,
+                        message: `You've reached your free AI limit for now. Your allowance resets in about ${formatResetTime(
+                            retryAfter
+                        )}. Your saved trips are still available in the sidebar.`,
+                        rateLimit: {
+                            limit: decision.reason.max,
+                            remaining: decision.reason.remaining,
+                            reset: retryAfter,
+                        },
+                    },
+                    {
+                        status: 429,
+                        headers: { "Retry-After": String(retryAfter) },
+                    }
+                );
+            }
+
+            return NextResponse.json(
+                {
+                    success: false,
+                    message:
+                        "This request was blocked. Please try again later.",
+                },
+                { status: 403 }
+            );
+        }
 
         // Request AI response
         const completion = await openai.chat.completions.create({

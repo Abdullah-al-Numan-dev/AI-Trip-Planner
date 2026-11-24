@@ -159,7 +159,9 @@ function ChatBox({ onTripGenerated, onViewTrip }: ChatBoxProps) {
 
                 if (status === 429) {
                     message =
-                        "The AI service is busy. Please try again shortly.";
+                        typeof serverMessage === "string"
+                            ? serverMessage
+                            : "You're sending requests too quickly. Please wait a moment and try again.";
                 } else if (status === 502) {
                     message =
                         serverMessage ||
