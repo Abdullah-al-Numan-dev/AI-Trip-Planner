@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { MapPin, Plus, X } from "lucide-react";
+import { MapPin, PanelLeftClose, PanelLeftOpen, Plus, X } from "lucide-react";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import type { SavedTrip } from "./types";
@@ -13,6 +13,7 @@ type Props = {
     onNewChat: () => void;
     onSelectTrip: (trip: SavedTrip) => void;
     onClose?: () => void;
+    onCollapse?: () => void;
 };
 
 function tripTitle(trip: SavedTrip) {
@@ -40,6 +41,7 @@ function TripSidebar({
     onNewChat,
     onSelectTrip,
     onClose,
+    onCollapse,
 }: Props) {
     const { user } = useUser();
 
@@ -55,6 +57,20 @@ function TripSidebar({
                     <Plus className='h-4 w-4' />
                     New chat
                 </Button>
+
+                {onCollapse && (
+                    <Button
+                        type='button'
+                        variant='ghost'
+                        size='icon'
+                        className='hidden lg:inline-flex'
+                        onClick={onCollapse}
+                        aria-label='Hide saved trips'
+                        title='Hide saved trips'
+                    >
+                        <PanelLeftClose className='h-4 w-4' />
+                    </Button>
+                )}
 
                 {onClose && (
                     <Button

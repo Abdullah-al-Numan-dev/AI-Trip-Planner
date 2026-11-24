@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Globe2, List, Menu, MessageSquare, Plus } from "lucide-react";
+import {
+    Globe2,
+    List,
+    Menu,
+    MessageSquare,
+    PanelLeftOpen,
+    Plus,
+} from "lucide-react";
 import { useQuery } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
@@ -37,6 +44,7 @@ function CreateNewTrip() {
     const [sideTab, setSideTab] = useState<SideTab>("map");
     const [mobileView, setMobileView] = useState<MobileView>("chat");
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mapLocation, setMapLocation] = useState<{
         source?: string;
         destination?: string;
@@ -120,6 +128,7 @@ function CreateNewTrip() {
         loading: tripsLoading,
         onNewChat: startNewChat,
         onSelectTrip: openSavedTrip,
+        onCollapse: () => setSidebarCollapsed(true),
     };
 
     const tabClass = (active: boolean) =>
@@ -191,10 +200,25 @@ function CreateNewTrip() {
 
     return (
         <div className='flex min-h-0 flex-1 overflow-hidden bg-background'>
-            {/* Desktop sidebar */}
-            <div key='desktop-sidebar' className='hidden lg:flex'>
-                <TripSidebar {...sidebarProps} />
-            </div>
+            {/* Desktop sidebar, or a slim rail when collapsed */}
+            {sidebarCollapsed ? (
+                <div className='hidden w-12 shrink-0 flex-col items-center border-r bg-sidebar py-3 lg:flex'>
+                    <Button
+                        type='button'
+                        variant='ghost'
+                        size='icon'
+                        onClick={() => setSidebarCollapsed(false)}
+                        aria-label='Show saved trips'
+                        title='Show saved trips'
+                    >
+                        <PanelLeftOpen className='h-5 w-5' />
+                    </Button>
+                </div>
+            ) : (
+                <div key='desktop-sidebar' className='hidden lg:flex'>
+                    <TripSidebar {...sidebarProps} />
+                </div>
+            )}
 
             {/* Mobile sidebar drawer */}
             {sidebarOpen && (
@@ -257,7 +281,13 @@ function CreateNewTrip() {
 
                 {/* All views stay mounted; CSS decides what is visible and
                     where, so switching tabs never loses the conversation. */}
-                <div className='grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden lg:grid-cols-[52%_48%]'>
+                <div
+                    className={`grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden ${
+                        mainView === "itinerary"
+                            ? "lg:grid-cols-[60%_40%]"
+                            : "lg:grid-cols-[52%_48%]"
+                    }`}
+                >
                     {/* Chat */}
                     <div
                         className={`col-start-1 row-start-1 row-span-2 min-h-0 min-w-0 p-3 sm:p-4 ${
