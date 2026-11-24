@@ -10,7 +10,12 @@ import Itinerary from "./_components/Itinerary";
 import TripSidebar from "./_components/TripSidebar";
 import { Button } from "@/components/ui/button";
 import { useUserDetail } from "@/app/provider";
+import dynamic from "next/dynamic";
 import type { SavedTrip, TripPlan } from "./_components/types";
+
+const GlobalMap = dynamic(() => import("./_components/GlobalMap"), {
+    ssr: false,
+});
 
 type MobilePanel = "chat" | "itinerary";
 
@@ -29,6 +34,10 @@ function CreateNewTrip() {
     const [showItinerary, setShowItinerary] = useState(false);
     const [mobilePanel, setMobilePanel] = useState<MobilePanel>("chat");
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [mapLocation, setMapLocation] = useState<{
+        source?: string;
+        destination?: string;
+    }>({});
 
     const trips = (savedTrips ?? []) as SavedTrip[];
 
@@ -47,6 +56,7 @@ function CreateNewTrip() {
         setShowItinerary(false);
         setMobilePanel("chat");
         setSidebarOpen(false);
+        setMapLocation({});
     };
 
     const openSavedTrip = (trip: SavedTrip) => {
@@ -67,11 +77,19 @@ function CreateNewTrip() {
         setMobilePanel("itinerary");
     };
 
+    const handleLocationDetected = (location: {
+        source?: string;
+        destination?: string;
+    }) => {
+        setMapLocation((current) => ({ ...current, ...location }));
+    };
+
     const chat = (
         <ChatBox
             key={chatKey}
             onTripGenerated={handleTripGenerated}
             onViewTrip={handleViewTrip}
+            onLocationDetected={handleLocationDetected}
         />
     );
 
@@ -84,9 +102,21 @@ function CreateNewTrip() {
     };
 
     return (
-        <div className='flex min-h-0 flex-1 overflow-hidden bg-background'>
+        <div className='relative flex min-h-0 flex-1 overflow-hidden bg-background'>
+            {/* Globe background. The scrim keeps chat text readable in both themes. */}
+            <div className='pointer-events-none absolute inset-0 z-0' aria-hidden='true'>
+                <GlobalMap
+                    source={mapLocation.source}
+                    destination={mapLocation.destination}
+                />
+            </div>
+            <div
+                className='pointer-events-none absolute inset-0 z-[1] bg-background/50'
+                aria-hidden='true'
+            />
+
             {/* Desktop sidebar */}
-            <div key='desktop-sidebar' className='hidden lg:flex'>
+            <div key='desktop-sidebar' className='relative z-10 hidden lg:flex'>
                 <TripSidebar {...sidebarProps} />
             </div>
 
@@ -108,7 +138,7 @@ function CreateNewTrip() {
                 </div>
             )}
 
-            <div key='main' className='flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
+            <div key='main' className='relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
                 {/* Mobile top bar */}
                 <div className='flex items-center gap-2 border-b px-2 py-2 lg:hidden'>
                     <Button

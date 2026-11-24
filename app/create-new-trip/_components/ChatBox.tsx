@@ -33,6 +33,10 @@ type AIResponse = {
 type ChatBoxProps = {
     onTripGenerated?: (trip: TripPlan, tripId: string) => void;
     onViewTrip?: () => void;
+    onLocationDetected?: (location: {
+        source?: string;
+        destination?: string;
+    }) => void;
 };
 
 const UI_LABELS: Record<string, string> = {
@@ -48,7 +52,11 @@ const UI_LABELS: Record<string, string> = {
     final: "Your Trip Plan",
 };
 
-function ChatBox({ onTripGenerated, onViewTrip }: ChatBoxProps) {
+function ChatBox({
+    onTripGenerated,
+    onViewTrip,
+    onLocationDetected,
+}: ChatBoxProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [userInput, setUserInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -78,6 +86,16 @@ function ChatBox({ onTripGenerated, onViewTrip }: ChatBoxProps) {
 
         // Require text for normal messages, but allow empty text if triggered as final generation
         if ((!input && !isFinalRequest) || loading) return;
+
+        // `ui` is the question the user is answering. Feed place answers to
+        // the globe so it can fly there and drop a labelled pin.
+        if (!isFinalRequest) {
+            const step = ui.toLowerCase();
+            if (step === "source") onLocationDetected?.({ source: input });
+            if (step === "destination") {
+                onLocationDetected?.({ destination: input });
+            }
+        }
 
         let updatedMessages = [...messages];
 
