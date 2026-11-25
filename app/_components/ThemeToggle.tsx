@@ -12,27 +12,34 @@ type ViewTransitionDocument = Document & {
 };
 
 const THEME_KEY = "theme";
-const SPLASH_DURATION = 950;
+const SPLASH_DURATION = 1100;
 
 const TAU = Math.PI * 2;
-const MASK_POINTS = 72;
+const MASK_POINTS = 240;
 const MASK_CENTER = 500;
-const MASK_BASE = 340;
+const MASK_BASE = 350;
 
-// Radial distance from the mask centre to its edge at a given angle, in the
-// mask's 0-1000 viewBox units. Shared by the SVG generator and the sizing
-// calculation so both agree on the silhouette.
+// Organic edge: several harmonics plus sparse, long tendrils so the reveal
+// reads as spreading ink instead of a smooth circle.
 function splashRadius(angle: number) {
     const normalized = ((angle % TAU) + TAU) % TAU;
     const wobble =
         1 +
-        0.17 * Math.sin(angle * 3 + 1.6) +
-        0.08 * Math.sin(angle * 7 - 0.4) +
-        0.035 * Math.sin(angle * 19 + 2.2);
-    const index = Math.round((normalized / TAU) * MASK_POINTS) % MASK_POINTS;
-    const spike = index % 9 === 0 ? 0.18 : index % 13 === 0 ? 0.1 : 0;
+        0.13 * Math.sin(normalized * 2 + 0.6) +
+        0.09 * Math.sin(normalized * 5 - 1.1) +
+        0.055 * Math.sin(normalized * 11 + 0.5) +
+        0.03 * Math.sin(normalized * 23 - 0.9) +
+        0.018 * Math.sin(normalized * 47 + 2.1);
 
-    return MASK_BASE * (wobble + spike);
+    const tendril =
+        Math.pow(Math.max(0, Math.sin(normalized * 7 + 1.3)), 14) * 0.24 +
+        Math.pow(Math.max(0, Math.sin(normalized * 13 - 0.5)), 20) * 0.16;
+
+    const index =
+        Math.round((normalized / TAU) * MASK_POINTS) % MASK_POINTS;
+    const spike = index % 19 === 0 ? 0.13 : index % 31 === 0 ? 0.08 : 0;
+
+    return MASK_BASE * (wobble + tendril + spike);
 }
 
 // Draw a ragged ink-splash mask: one wobbly blob with scattered droplets
@@ -52,10 +59,11 @@ function buildSplashMask() {
 
     path.push("Z");
 
-    const droplets = Array.from({ length: 16 }, (_, i) => {
-        const angle = (i / 16) * TAU + 0.35;
-        const distance = MASK_BASE * (1.1 + 0.18 * Math.sin(i * 2.7));
-        const radius = 7 + ((i * 7) % 14);
+    const droplets = Array.from({ length: 34 }, (_, i) => {
+        const angle = (i / 34) * TAU + 0.27 * Math.sin(i * 3.1);
+        const distance =
+            MASK_BASE * (1.04 + 0.34 * ((Math.sin(i * 5.7) + 1) / 2));
+        const radius = 2 + ((i * 13) % 16);
         const x = MASK_CENTER + Math.cos(angle) * distance;
         const y = MASK_CENTER + Math.sin(angle) * distance;
         return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(
@@ -63,9 +71,29 @@ function buildSplashMask() {
         )}" r="${radius}" />`;
     }).join("");
 
+    const tails = Array.from({ length: 10 }, (_, i) => {
+        const angle = (i / 10) * TAU + 0.4;
+        const halfWidth = 0.012 + 0.01 * ((Math.sin(i * 2.3) + 1) / 2);
+        const inner = splashRadius(angle) * 0.97;
+        const outer = inner * (1.15 + 0.12 * ((Math.sin(i * 4.1) + 1) / 2));
+        const point = (radius: number, theta: number) =>
+            `${(MASK_CENTER + Math.cos(theta) * radius).toFixed(1)} ${(
+                MASK_CENTER +
+                Math.sin(theta) * radius
+            ).toFixed(1)}`;
+
+        return `<path d="M${point(
+            inner,
+            angle - halfWidth
+        )} L${point(outer, angle)} L${point(
+            inner,
+            angle + halfWidth
+        )} Z" fill="#fff"/>`;
+    }).join("");
+
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><path d="${path.join(
         ""
-    )}" fill="#fff"/>${droplets}</svg>`;
+    )}" fill="#fff"/>${tails}${droplets}</svg>`;
 
     return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
@@ -162,7 +190,7 @@ function ThemeToggle() {
                                     splashRadius(Math.atan2(dy, dx))
                                 );
                             })
-                        ) * 1.04;
+                        ) * 1.12;
 
                     root.animate(
                         [
